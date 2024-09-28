@@ -41,7 +41,9 @@ jobs:
 
       # Debug step to check apk version
       - name: Debug APK Version
-        run: echo "APK version name: ${{ steps.apk-info.outputs.version-name }}"
+        run: |
+          echo "APK version name: ${{ steps.apk-info.outputs['version-name'] }}"
+
 
       # Ensure the tag is created
       - name: Create Git Tag
