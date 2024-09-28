@@ -1,4 +1,4 @@
-name: Update Checker
+name: update-checker
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "$(jq -r '.["commit-log"]' data/info.json)" > ./data/commit-log.txt
 
-      - name: Get APK Info
+      - name: Get Apk Info
         id: apk-info
         if: ${{ env.status == 'success' }}
         uses: hkusu/apk-info-action@v1
@@ -44,26 +44,23 @@ jobs:
         run: |
           echo "APK version name: ${{ steps.apk-info.outputs['version-name'] }}"
 
-      # Check for existing tags
-      - name: Check Existing Tag
-        id: check-tag
+      # Ensure the tag is created
+      - name: Get Existing Tag
+        id: existing-tag
         run: |
           existing_tag=$(git tag --list "${{ steps.apk-info.outputs.version-name }}")
           echo "existing_tag=${existing_tag}" >> $GITHUB_ENV
 
-      # Delete old tag if it exists
-      - name: Delete Old Tag if Exists
-        if: env.existing_tag != ''
+      - name: Delete Old Tag If Exists
+        if: ${{ env.existing_tag != '' }}
         run: |
-          echo "Deleting existing tag: ${{ steps.apk-info.outputs.version-name }}"
           git tag -d ${{ steps.apk-info.outputs.version-name }}
           git push origin :refs/tags/${{ steps.apk-info.outputs.version-name }}
 
-      # Create and push new tag
-      - name: Create and Push New Tag
+      - name: Create New Git Tag
         run: |
-          git tag ${{ steps.apk-info.outputs.version-name }}
-          git push origin ${{ steps.apk-info.outputs.version-name }}
+          git tag ${{ steps.apk-info.outputs.version-name || 'v1.0.0' }}
+          git push origin ${{ steps.apk-info.outputs.version-name || 'v1.0.0' }}
 
       - name: Commit Changes
         run: |
@@ -95,7 +92,7 @@ jobs:
         if: ${{ env.status == 'success' }}
         with:
           files: ./archive/*.apk
-          tag_name: ${{ steps.apk-info.outputs.version-name }}
+          tag_name: ${{ steps.apk-info.outputs.version-name || 'v1.0.0' }}
           name: ${{ env.workflow_name }}
           body_path: ./data/commit-log.txt
 
@@ -120,3 +117,4 @@ jobs:
         run: gh workflow run checker.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
